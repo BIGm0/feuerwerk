@@ -230,6 +230,7 @@ class VectorSprite(pygame.sprite.Sprite):
         pass # for subclasses
         
     def create_image(self):
+        
         if self.picture is not None:
             self.image = self.picture.copy()
         else:            
@@ -398,7 +399,26 @@ class Ball(VectorSprite):
         #self.image.set_colorkey((0,0,0))
         #self.image = self.image.convert_alpha() # faster blitting with transparent color
         #self.rect= self.image.get_rect()
-
+class Goal(VectorSprite):
+    
+    def create_image(self):
+        self.width=200
+        self.height=300
+        self.color=(0,0,150)
+        if self.picture is not None:
+            self.image = self.picture.copy()
+        else:            
+            self.image = pygame.Surface((self.width,self.height))    
+            self.image.fill((self.color))
+        self.image = self.image.convert()
+        self.image0 = self.image.copy()
+        self.rect= self.image.get_rect()
+        self.width = self.rect.width
+        self.height = self.rect.height
+        self.radius=0
+    
+    
+    
 class PygView(object):
     width = 0
     height = 0
@@ -427,7 +447,9 @@ class PygView(object):
         self.ballgroup = pygame.sprite.Group()          # for collision detection etc.
         self.bulletgroup = pygame.sprite.Group()
         self.cannongroup = pygame.sprite.Group()
+        self.goalgroup = pygame.sprite.Group()
         Ball.groups = self.allgroup, self.ballgroup # each Ball object belong to those groups
+        Goal.groups = self.allgroup, self.goalgroup
         #Bullet.groups = self.allgroup, self.bulletgroup
         Cannon.groups = self.allgroup, self.cannongroup
         VectorSprite.groups = self.allgroup
@@ -441,9 +463,13 @@ class PygView(object):
         self.cannon3 = Cannon(bossnumber = self.ball3.number)
         self.ball4 = Ball(pos=v.Vec2d(800,500), move=v.Vec2d(0,0), bounce_on_edge=True,mass=5000,color=(0,0,255)) #upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500)
         self.cannon4 = Cannon(bossnumber = self.ball4.number)
-        
+        self.cannon5 = Cannon(pos=v.Vec2d(0,0),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
+        self.cannon6 = Cannon(pos=v.Vec2d(1400,0),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
+        self.cannon7 = Cannon(pos=v.Vec2d(0,800),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
+        self.cannon8 = Cannon(pos=v.Vec2d(1400,800),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
         #self.ball2 = Ball(x=200, y=100) # create another Ball Sprite
-
+        self.goal1 = Goal(pos=v.Vec2d(0,400))
+        self.goal2 = Goal(pos=v.Vec2d(1400,400))
         #VectorSprite(horst=14, jens="abc")
 
     def run(self):
@@ -462,8 +488,7 @@ class PygView(object):
                         m = v.Vec2d(60,0) # lenght of cannon
                         m = m.rotated(-self.cannon1.angle)
                         p = v.Vec2d(self.ball1.pos.x, self.ball1.pos.y) + m
-                        
-                        Ball(pos=p, move=m.normalized()*500+self.ball1.move, radius=25,color=(1,1,1),mass=9000)
+                        Ball(pos=p, move=m.normalized()*80+self.ball1.move, radius=30,color=(1,1,1),mass=9000)
                         self.ball1.move+=m.normalized()*-100
                     if event.key == pygame.K_b:
                         Ball(pos=v.Vec2d(self.ball1.pos.x,self.ball1.pos.y), move=v.Vec2d(0,0), radius=5, friction=0.800, bounce_on_edge=True) # add small balls!
@@ -522,6 +547,79 @@ class PygView(object):
             self.cannon2.set_angle(-vectordiff.get_angle()-180)
             vectordiff = self.ball4.pos - self.ball3.pos
             self.cannon4.set_angle(-vectordiff.get_angle()-180)
+            
+            
+            #vectordiff = self.cannon6.pos - self.ball1.pos
+            #self.cannon6.set_angle(-vectordiff.get_angle()-180)
+            
+            #----cannon6---
+            if random.random()<0.01:
+                m = v.Vec2d(60,0) # lenght of cannon
+                m = m.rotated(-self.cannon6.angle)
+                p = v.Vec2d(self.cannon6.pos.x, self.cannon6.pos.y) + m
+                #print(p, m)
+                Ball(pos=p, move=m.normalized()*150+self.cannon6.move,mass=1000,radius=10)
+            #----cannon5
+            if random.random()<0.01:
+                m = v.Vec2d(60,0) # lenght of cannon
+                m = m.rotated(-self.cannon5.angle)
+                p = v.Vec2d(self.cannon5.pos.x, self.cannon5.pos.y) + m
+                #print(p, m)
+                Ball(pos=p, move=m.normalized()*150+self.cannon5.move,mass=1000,radius=10)
+            #----cannon7
+            if random.random()<0.01:
+                m = v.Vec2d(60,0) # lenght of cannon
+                m = m.rotated(-self.cannon7.angle)
+                p = v.Vec2d(self.cannon7.pos.x, self.cannon7.pos.y) + m
+                #print(p, m)
+                Ball(pos=p, move=m.normalized()*150+self.cannon7.move,mass=1000,radius=10)
+            #----cannon8
+            if random.random()<0.01:
+                m = v.Vec2d(60,0) # lenght of cannon
+                m = m.rotated(-self.cannon8.angle)
+                p = v.Vec2d(self.cannon8.pos.x, self.cannon8.pos.y) + m
+                #print(p, m)
+                Ball(pos=p, move=m.normalized()*150+self.cannon8.move,mass=1000,radius=10)
+            
+            
+            
+            
+            #cannon6
+            d1 = self.cannon6.pos.get_distance(self.ball1.pos)
+            d2 = self.cannon6.pos.get_distance(self.ball3.pos)
+            if d1 < d2:
+                vectordiff = self.cannon6.pos - self.ball1.pos
+                self.cannon6.set_angle(-vectordiff.get_angle()-180)
+            else:
+                vectordiff = self.cannon6.pos - self.ball3.pos
+                self.cannon6.set_angle(-vectordiff.get_angle()-180)
+            #cannon5
+            d3 = self.cannon5.pos.get_distance(self.ball1.pos)
+            d4 = self.cannon5.pos.get_distance(self.ball3.pos)
+            if d3 < d4:
+                vectordiff = self.cannon5.pos - self.ball1.pos
+                self.cannon5.set_angle(-vectordiff.get_angle()-180)
+            else:
+                vectordiff = self.cannon5.pos - self.ball3.pos
+                self.cannon5.set_angle(-vectordiff.get_angle()-180)
+            #cannon7
+            d5 = self.cannon7.pos.get_distance(self.ball1.pos)
+            d6 = self.cannon7.pos.get_distance(self.ball3.pos)
+            if d5 < d6:
+                vectordiff = self.cannon7.pos - self.ball1.pos
+                self.cannon7.set_angle(-vectordiff.get_angle()-180)
+            else:
+                vectordiff = self.cannon7.pos - self.ball3.pos
+                self.cannon7.set_angle(-vectordiff.get_angle()-180)
+            #cannon8
+            d7 = self.cannon8.pos.get_distance(self.ball1.pos)
+            d8 = self.cannon8.pos.get_distance(self.ball3.pos)
+            if d7 < d8:
+                vectordiff = self.cannon8.pos - self.ball1.pos
+                self.cannon8.set_angle(-vectordiff.get_angle()-180)
+            else:
+                vectordiff = self.cannon8.pos - self.ball3.pos
+                self.cannon8.set_angle(-vectordiff.get_angle()-180)
             
             #     ---auto shooting  ----
             if random.random()<0.01:
