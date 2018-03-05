@@ -217,6 +217,7 @@ class VectorSprite(pygame.sprite.Sprite):
 
         self.create_image()
         
+        
         self.rect.center = (-300,-300) # avoid blinking image in topleft corner
         #self.init2()
 
@@ -241,6 +242,7 @@ class VectorSprite(pygame.sprite.Sprite):
         self.rect= self.image.get_rect()
         self.width = self.rect.width
         self.height = self.rect.height
+        self.mask = pygame.mask.from_surface(self.image)
         
     def rotate(self, by_degree):
         """rotates a sprite and changes it's angle by by_degree"""
@@ -260,7 +262,7 @@ class VectorSprite(pygame.sprite.Sprite):
         self.image.convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = oldcenter
-        print("rotated to !")
+        #print("rotated to !")
         
         
     def update(self, seconds):
@@ -281,6 +283,7 @@ class VectorSprite(pygame.sprite.Sprite):
             if self.sticky_with_boss:
                 boss = VectorSprite.numbers[self.bossnumber]
                 self.pos = v.Vec2d(boss.pos.x, boss.pos.y)
+                   
             
         self.pos += self.move * seconds
         if self.friction is not None:
@@ -335,6 +338,7 @@ class Cannon(VectorSprite):
         self.image.convert_alpha()
         self.rect = self.image.get_rect()
         self.image0 = self.image.copy()
+        self.mask = pygame.mask.from_surface(self.image)
 
 class Ball(VectorSprite):
     """it's a pygame Sprite!"""
@@ -343,7 +347,7 @@ class Ball(VectorSprite):
     def __init__(self, layer=4, **kwargs):
         VectorSprite.__init__(self, layer, **kwargs)
         #Hitpointbar(self.number)
-        print("updkey", self.upkey)
+        #print("updkey", self.upkey)
         
     def update(self, seconds):
         VectorSprite.update(self, seconds)
@@ -379,6 +383,7 @@ class Ball(VectorSprite):
         self.image = self.image.convert_alpha() # faster blitting with transparent color
         self.rect= self.image.get_rect()
         self.image0 = self.image.copy()
+        self.mask = pygame.mask.from_surface(self.image)
         
 #class Bullet(VectorSprite):
     #"""a small Sprite"""
@@ -399,11 +404,29 @@ class Ball(VectorSprite):
         #self.image.set_colorkey((0,0,0))
         #self.image = self.image.convert_alpha() # faster blitting with transparent color
         #self.rect= self.image.get_rect()
+        
+class Wall(VectorSprite):
+    def create_image(self):
+        #self.color=(0,0,200)
+        if self.picture is not None:
+            self.image = self.picture.copy()
+        else:            
+            self.image = pygame.Surface((self.width,self.height))    
+            self.image.fill((self.color))
+            self.image.set_colorkey((0,0,0,))
+        self.image = self.image.convert()
+        self.image0 = self.image.copy()
+        self.rect= self.image.get_rect()
+        self.width = self.rect.width
+        self.height = self.rect.height
+        self.radius=0
+        self.mask = pygame.mask.from_surface(self.image)
+        
 class Goal(VectorSprite):
     
     def create_image(self):
-        self.width=200
-        self.height=300
+        self.width=100
+        self.height=250
         self.color=(0,0,150)
         if self.picture is not None:
             self.image = self.picture.copy()
@@ -415,7 +438,8 @@ class Goal(VectorSprite):
         self.rect= self.image.get_rect()
         self.width = self.rect.width
         self.height = self.rect.height
-        self.radius=0
+        self.radius=300
+        self.mask = pygame.mask.from_surface(self.image)
     
     
     
@@ -440,37 +464,66 @@ class PygView(object):
         
     def paint(self):
         """painting on the surface and create sprites"""
+        # score
+        self.p1score = -1
+        self.p2score = 0 
         # make an interesting background 
-        draw_examples(self.background)
+        #draw_examples(self.background)
         # create (pygame) Sprites.
         self.allgroup =  pygame.sprite.LayeredUpdates() # for drawing
         self.ballgroup = pygame.sprite.Group()          # for collision detection etc.
-        self.bulletgroup = pygame.sprite.Group()
+        #self.bulletgroup = pygame.sprite.Group()
         self.cannongroup = pygame.sprite.Group()
         self.goalgroup = pygame.sprite.Group()
+        self.wallgroup = pygame.sprite.Group()
+        self.lazygroup = pygame.sprite.Group()
         Ball.groups = self.allgroup, self.ballgroup # each Ball object belong to those groups
         Goal.groups = self.allgroup, self.goalgroup
         #Bullet.groups = self.allgroup, self.bulletgroup
         Cannon.groups = self.allgroup, self.cannongroup
         VectorSprite.groups = self.allgroup
+        Wall.group =self.allgroup,self.wallgroup
         #Hitpointbar.groups = self.allgroup
         
-        self.ball1 = Ball(pos=v.Vec2d(200,150), move=v.Vec2d(0,0), bounce_on_edge=True, upkey=pygame.K_w, downkey=pygame.K_s, leftkey=pygame.K_a, rightkey=pygame.K_d, mass=500,color=(150,0,0)) # creating a Ball Sprite
-        self.cannon1 = Cannon(bossnumber = self.ball1.number)
-        self.ball2 = Ball(pos=v.Vec2d(600,350), move=v.Vec2d(0,0), bounce_on_edge=True,mass=5000,color=(0,255,0)) #upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500)
-        self.cannon2 = Cannon(bossnumber = self.ball2.number)
-        self.ball3 =Ball(pos=v.Vec2d(1200,150), move=v.Vec2d(0,0), bounce_on_edge=True, upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500,color=(150,150,150))
-        self.cannon3 = Cannon(bossnumber = self.ball3.number)
-        self.ball4 = Ball(pos=v.Vec2d(800,500), move=v.Vec2d(0,0), bounce_on_edge=True,mass=5000,color=(0,0,255)) #upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500)
-        self.cannon4 = Cannon(bossnumber = self.ball4.number)
-        self.cannon5 = Cannon(pos=v.Vec2d(0,0),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
-        self.cannon6 = Cannon(pos=v.Vec2d(1400,0),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
-        self.cannon7 = Cannon(pos=v.Vec2d(0,800),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
-        self.cannon8 = Cannon(pos=v.Vec2d(1400,800),move=v.Vec2d(0,0),m = v.Vec2d(60,0))
+        self.player1 = Ball(pos=v.Vec2d(200,150), move=v.Vec2d(0,0), bounce_on_edge=True, upkey=pygame.K_w, downkey=pygame.K_s, leftkey=pygame.K_a, rightkey=pygame.K_d, mass=500,color=(150,0,0)) # creating a Ball Sprite
+        self.cannon1 = Cannon(bossnumber = self.player1.number,maxrange=300)
+        #self.ball2 = Ball(pos=v.Vec2d(600,350), move=v.Vec2d(0,0), bounce_on_edge=True,mass=5000,color=(0,255,0)) #upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500)
+        #self.cannon2 = Cannon(bossnumber = self.ball2.number)
+        self.player2 =Ball(pos=v.Vec2d(1200,150), move=v.Vec2d(0,0), bounce_on_edge=True, upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500,color=(150,150,150))
+        self.cannon3 = Cannon(bossnumber = self.player2.number,maxrange=300)
+        #self.ball4 = Ball(pos=v.Vec2d(800,500), move=v.Vec2d(0,0), bounce_on_edge=True,mass=5000,color=(0,0,255)) #upkey=pygame.K_UP, downkey=pygame.K_DOWN, leftkey=pygame.K_LEFT, rightkey=pygame.K_RIGHT, mass=500)
+        #self.cannon4 = Cannon(bossnumber = self.ball4.number)
+        self.cannon5 = Cannon(pos=v.Vec2d(0,250),move=v.Vec2d(0,0),m = v.Vec2d(60,0),maxrange=600)
+        self.cannon6 = Cannon(pos=v.Vec2d(1400,250),move=v.Vec2d(0,0),m = v.Vec2d(60,0),maxrange=600)
+        self.cannon7 = Cannon(pos=v.Vec2d(0,550),move=v.Vec2d(0,0),m = v.Vec2d(60,0),maxrange=600)
+        self.cannon8 = Cannon(pos=v.Vec2d(1400,550),move=v.Vec2d(0,0),m = v.Vec2d(60,0),maxrange=600)
+        
+        self.lazyball1 = Ball(pos=v.Vec2d(self.width//2, self.height//2),
+                              mass=500, radius=20, color=(1,1,1),
+                              bounce_on_edge=True)
+        self.lazyball1.groups = self.allgroup, self.ballgroup, self.lazygroup
+                              
+                         
+        
         #self.ball2 = Ball(x=200, y=100) # create another Ball Sprite
-        self.goal1 = Goal(pos=v.Vec2d(0,400))
-        self.goal2 = Goal(pos=v.Vec2d(1400,400))
+        self.goal1 = Goal(layer=2, pos=v.Vec2d(0,400))
+        self.goal2 = Goal(layer=2, pos=v.Vec2d(1400,400))
         #VectorSprite(horst=14, jens="abc")
+        for a in range(3):
+            self.wall1 =Wall(pos=v.Vec2d(random.randint(0,1400),random.randint(0,800)),
+                                width =random.randint(1,700),
+                                height=10,
+                                move=v.Vec2d(random.randint(10,20),0),
+                                bounce_on_edge = True)
+        for a in range(3):
+            self.wall1 =Wall(pos=v.Vec2d(random.randint(0,1400),random.randint(0,800)),
+                                width =15,
+                                height=random.randint(1,400),
+                                move=v.Vec2d(random.randint(1,5),20),
+                                bounce_on_edge = True)
+                    
+        
+        
 
     def run(self):
         """The mainloop"""
@@ -487,42 +540,42 @@ class PygView(object):
                     if event.key == pygame.K_1:
                         m = v.Vec2d(60,0) # lenght of cannon
                         m = m.rotated(-self.cannon1.angle)
-                        p = v.Vec2d(self.ball1.pos.x, self.ball1.pos.y) + m
-                        Ball(pos=p, move=m.normalized()*80+self.ball1.move, radius=30,color=(1,1,1),mass=9000)
-                        self.ball1.move+=m.normalized()*-100
+                        p = v.Vec2d(self.player1.pos.x, self.player1.pos.y) + m
+                        Ball(pos=p, move=m.normalized()*80+self.player1.move, radius=30,color=(1,1,1),mass=9000)
+                        self.player1.move+=m.normalized()*-100
                     if event.key == pygame.K_b:
-                        Ball(pos=v.Vec2d(self.ball1.pos.x,self.ball1.pos.y), move=v.Vec2d(0,0), radius=5, friction=0.800, bounce_on_edge=True) # add small balls!
+                        Ball(pos=v.Vec2d(self.player1.pos.x,self.player1.pos.y), move=v.Vec2d(0,0), radius=5, friction=0.800, bounce_on_edge=True) # add small balls!
                     if event.key == pygame.K_c:
                         m = v.Vec2d(60,0) # lenght of cannon
                         m = m.rotated(-self.cannon1.angle)
-                        p = v.Vec2d(self.ball1.pos.x, self.ball1.pos.y) + m
+                        p = v.Vec2d(self.player1.pos.x, self.player1.pos.y) + m
                         #print(p, m)
-                        Ball(pos=p, move=m.normalized()*150+self.ball1.move, radius=10,color=(255,0,0)) # move=v.Vec2d(0,0),
+                        Ball(pos=p, move=m.normalized()*150+self.player1.move, radius=10,color=(255,0,0)) # move=v.Vec2d(0,0),
                         #knockbackeffect
-                        self.ball1.move+=m.normalized()*-10 
+                        self.player1.move+=m.normalized()*-10 
                     if event.key == pygame.K_m:
                         m = v.Vec2d(60,0) # lenght of cannon
                         m = m.rotated(-self.cannon3.angle)
-                        p = v.Vec2d(self.ball3.pos.x, self.ball3.pos.y) + m
+                        p = v.Vec2d(self.player2.pos.x, self.player2.pos.y) + m
                         #print(p, m)
-                        Ball(pos=p, move=m.normalized()*150+self.ball3.move,mass=1000,radius=10) # move=v.Vec2d(0,0),
+                        Ball(pos=p, move=m.normalized()*150+self.player2.move,mass=1000,radius=10) # move=v.Vec2d(0,0),
                         #knockbackeffect
-                        self.ball3.move+=m.normalized()*-10
+                        self.player2.move+=m.normalized()*-10
                     #if event.key == pygame.K_n:
                         #m = v.Vec2d(60,0) # lenght of cannon
                         #m = m.rotated(-self.cannon3.angle)
-                        #p = v.Vec2d(self.ball3.pos.x, self.ball3.pos.y) + m
+                        #p = v.Vec2d(self.player2.pos.x, self.player2.pos.y) + m
                         #print(p, m)
-                        #Ball(pos=p, move=m.normalized()*150+self.ball3.move,mass=1000,radius=10) # move=v.Vec2d(0,0),
+                        #Ball(pos=p, move=m.normalized()*150+self.player2.move,mass=1000,radius=10) # move=v.Vec2d(0,0),
                         #knockbackeffect
-                        #self.ball3.move+=m.normalized()*-10
+                        #self.player2.move+=m.normalized()*-10
                     
                     
                         #m.rotate(self.cannon1.angle)
-                        #Bullet(bossnumber = self.ball1.number, move=m, kill_on_edge = True)
+                        #Bullet(bossnumber = self.player1.number, move=m, kill_on_edge = True)
                     if event.key == pygame.K_LEFT:
-                        self.ball1.rotate(1) # 
-                        print(self.ball1.angle)
+                        self.player1.rotate(1) # 
+                        #print(self.player1.angle)
                     #if event.key == pygame.K_t:
                     #    a = v.Vec2d(100,100)
                     #    b = v.Vec2d(100, 200)
@@ -541,114 +594,98 @@ class PygView(object):
             if pressed_keys[pygame.K_l]:
                 self.cannon3.rotate(-5)
                                            
-                                           
-            # --- auto aim cannon2 at ball1 ----
-            vectordiff = self.ball2.pos - self.ball1.pos
-            self.cannon2.set_angle(-vectordiff.get_angle()-180)
-            vectordiff = self.ball4.pos - self.ball3.pos
-            self.cannon4.set_angle(-vectordiff.get_angle()-180)
             
-            
-            #vectordiff = self.cannon6.pos - self.ball1.pos
-            #self.cannon6.set_angle(-vectordiff.get_angle()-180)
-            
-            #----cannon6---
-            if random.random()<0.01:
-                m = v.Vec2d(60,0) # lenght of cannon
-                m = m.rotated(-self.cannon6.angle)
-                p = v.Vec2d(self.cannon6.pos.x, self.cannon6.pos.y) + m
-                #print(p, m)
-                Ball(pos=p, move=m.normalized()*150+self.cannon6.move,mass=1000,radius=10)
-            #----cannon5
-            if random.random()<0.01:
-                m = v.Vec2d(60,0) # lenght of cannon
-                m = m.rotated(-self.cannon5.angle)
-                p = v.Vec2d(self.cannon5.pos.x, self.cannon5.pos.y) + m
-                #print(p, m)
-                Ball(pos=p, move=m.normalized()*150+self.cannon5.move,mass=1000,radius=10)
-            #----cannon7
-            if random.random()<0.01:
-                m = v.Vec2d(60,0) # lenght of cannon
-                m = m.rotated(-self.cannon7.angle)
-                p = v.Vec2d(self.cannon7.pos.x, self.cannon7.pos.y) + m
-                #print(p, m)
-                Ball(pos=p, move=m.normalized()*150+self.cannon7.move,mass=1000,radius=10)
-            #----cannon8
-            if random.random()<0.01:
-                m = v.Vec2d(60,0) # lenght of cannon
-                m = m.rotated(-self.cannon8.angle)
-                p = v.Vec2d(self.cannon8.pos.x, self.cannon8.pos.y) + m
-                #print(p, m)
-                Ball(pos=p, move=m.normalized()*150+self.cannon8.move,mass=1000,radius=10)
-            
-            
-            
+            # ----- auto shooting for corner cannons -------
+                        # corner cannon auto aim
+            for c in [self.cannon5,self.cannon6,self.cannon7,self.cannon8]:
+                d1 = c.pos.get_distance(self.player1.pos)
+                d2 = c.pos.get_distance(self.player2.pos)
+                d3 = c.pos.get_distance(self.lazyball1.pos)
+                targetlist = []
+                if d1< c.maxrange:
+                    targetlist.append(self.player1)
+                if d2< c.maxrange:
+                    targetlist.append(self.player2)
+                if d3< c.maxrange:
+                    targetlist.append(self.lazyball1)
+                if len(targetlist)>0:
+                    target = random.choice(targetlist)
+                    vectordiff=c.pos-target.pos
+                    c.set_angle(-vectordiff.get_angle()-180)
+                    #----auto shoot
+                    if random.random()<0.1:
+                        m = v.Vec2d(60,0) # lenght of cannon
+                        m = m.rotated(-c.angle)
+                        p = v.Vec2d(c.pos.x, c.pos.y) + m
+                        Ball(pos=p, move=m.normalized()*150+c.move,mass=1000,radius=10)
+                    
+                    
             
             #cannon6
-            d1 = self.cannon6.pos.get_distance(self.ball1.pos)
-            d2 = self.cannon6.pos.get_distance(self.ball3.pos)
+            d1 = self.cannon6.pos.get_distance(self.player1.pos)
+            d2 = self.cannon6.pos.get_distance(self.player2.pos)
             if d1 < d2:
-                vectordiff = self.cannon6.pos - self.ball1.pos
+                vectordiff = self.cannon6.pos - self.player1.pos
                 self.cannon6.set_angle(-vectordiff.get_angle()-180)
             else:
-                vectordiff = self.cannon6.pos - self.ball3.pos
+                vectordiff = self.cannon6.pos - self.player2.pos
                 self.cannon6.set_angle(-vectordiff.get_angle()-180)
             #cannon5
-            d3 = self.cannon5.pos.get_distance(self.ball1.pos)
-            d4 = self.cannon5.pos.get_distance(self.ball3.pos)
+            d3 = self.cannon5.pos.get_distance(self.player1.pos)
+            d4 = self.cannon5.pos.get_distance(self.player2.pos)
             if d3 < d4:
-                vectordiff = self.cannon5.pos - self.ball1.pos
+                vectordiff = self.cannon5.pos - self.player1.pos
                 self.cannon5.set_angle(-vectordiff.get_angle()-180)
             else:
-                vectordiff = self.cannon5.pos - self.ball3.pos
+                vectordiff = self.cannon5.pos - self.player2.pos
                 self.cannon5.set_angle(-vectordiff.get_angle()-180)
             #cannon7
-            d5 = self.cannon7.pos.get_distance(self.ball1.pos)
-            d6 = self.cannon7.pos.get_distance(self.ball3.pos)
+            d5 = self.cannon7.pos.get_distance(self.player1.pos)
+            d6 = self.cannon7.pos.get_distance(self.player2.pos)
             if d5 < d6:
-                vectordiff = self.cannon7.pos - self.ball1.pos
+                vectordiff = self.cannon7.pos - self.player1.pos
                 self.cannon7.set_angle(-vectordiff.get_angle()-180)
             else:
-                vectordiff = self.cannon7.pos - self.ball3.pos
+                vectordiff = self.cannon7.pos - self.player2.pos
                 self.cannon7.set_angle(-vectordiff.get_angle()-180)
             #cannon8
-            d7 = self.cannon8.pos.get_distance(self.ball1.pos)
-            d8 = self.cannon8.pos.get_distance(self.ball3.pos)
+            d7 = self.cannon8.pos.get_distance(self.player1.pos)
+            d8 = self.cannon8.pos.get_distance(self.player2.pos)
             if d7 < d8:
-                vectordiff = self.cannon8.pos - self.ball1.pos
+                vectordiff = self.cannon8.pos - self.player1.pos
                 self.cannon8.set_angle(-vectordiff.get_angle()-180)
             else:
-                vectordiff = self.cannon8.pos - self.ball3.pos
+                vectordiff = self.cannon8.pos - self.player2.pos
                 self.cannon8.set_angle(-vectordiff.get_angle()-180)
             
-            #     ---auto shooting  ----
-            if random.random()<0.01:
-                m = v.Vec2d(60,0) # lenght of cannon
-                m = m.rotated(-self.cannon2.angle)
-                p = v.Vec2d(self.ball2.pos.x, self.ball2.pos.y) + m
-                #print(p, m)
-                Ball(pos=p, move=m.normalized()*150+self.ball2.move,mass=1000,radius=10) # move=v.Vec2d(0,0),
-                #knockbackeffect
-                self.ball2.move+=m.normalized()*-10                                              
-            if random.random()<0.01:
-                m = v.Vec2d(60,0) # lenght of cannon
-                m = m.rotated(-self.cannon4.angle)
-                p = v.Vec2d(self.ball4.pos.x, self.ball4.pos.y) + m
-                #print(p, m)
-                Ball(pos=p, move=m.normalized()*150+self.ball4.move,mass=1000,radius=10) # move=v.Vec2d(0,0),
-                #knockbackeffect
-                self.ball3.move+=m.normalized()*-10        
+            #     ---auto shooting ball2, ball4  ----
+            #if random.random()<0.01:
+            #    m = v.Vec2d(60,0) # lenght of cannon
+            #    m = m.rotated(-self.cannon2.angle)
+            #    p = v.Vec2d(self.ball2.pos.x, self.ball2.pos.y) + m
+            #
+            #    Ball(pos=p, move=m.normalized()*150+self.ball2.move,mass=1000,radius=10, color=self.ball2.color) # move=v.Vec2d(0,0),
+            #    #knockbackeffect
+            #    self.ball2.move+=m.normalized()*-10                                              
+            #if random.random()<0.01:
+            #    m = v.Vec2d(60,0) # lenght of cannon
+            #    m = m.rotated(-self.cannon4.angle)
+            #    p = v.Vec2d(self.ball4.pos.x, self.ball4.pos.y) + m
+            #
+            #    Ball(pos=p, move=m.normalized()*150+self.ball4.move,mass=1000,radius=10, color=self.ball4.color) # move=v.Vec2d(0,0),
+            #    #knockbackeffect
+            #    self.player2.move+=m.normalized()*-10        
                     
             # -------- auto teleportation --------
-            if random.random()<0.01:
-                xx=random.randint(0,PygView.width)
-                yy=random.randint(0,PygView.height)
-                self.ball2.pos= v.Vec2d(xx,yy)
+            #if random.random()<0.01:
+            #    xx=random.randint(0,PygView.width)
+            #    yy=random.randint(0,PygView.height)
+            #    self.ball2.pos= v.Vec2d(xx,yy)
             # ------- auto move--------
-            if random.random()<0.1:
-                aa=random.randint(-10,10)
-                bb=random.randint(-8,8)
-                self.ball4.move+= v.Vec2d(aa,bb)
+            #if random.random()<0.1:
+            #    aa=random.randint(-10,10)
+            #    bb=random.randint(-8,8)
+            #    self.ball4.move+= v.Vec2d(aa,bb)
                     
                     
                      
@@ -659,27 +696,60 @@ class PygView(object):
             self.screen.blit(self.background, (0, 0)) 
             # write text below sprites
             write(self.screen, "FPS: {:6.3}  PLAYTIME: {:6.3} SECONDS".format(
-                           self.clock.get_fps(), self.playtime))
+                           self.clock.get_fps(), self.playtime), x=self.width//2, y=50, center=True,)
+            write(self.screen, "player1: {}  : {} player2 ".format(
+                           self.p1score, self.p2score), x=self.width//2, y=100, center=True,)
+            
             # you can use: pygame.sprite.collide_rect, pygame.sprite.collide_circle, pygame.sprite.collide_mask
             # the False means the colliding sprite is not killed
+            
             # ---------- collision detection between ball and bullet sprites ---------
+            
             #for ball in self.ballgroup:
             #   crashgroup = pygame.sprite.spritecollide(ball, self.bulletgroup, False, pygame.sprite.collide_circle)
             #   for bullet in crashgroup:
             #       elastic_collision(ball, bullet) # change dx and dy of both sprites
             #       ball.hitpoints -= bullet.damage
+            
+            # ---- collision detection for lazyball1
+            g = pygame.sprite.spritecollideany(self.lazyball1, self.goalgroup)
+            if g is not None:
+                #print(g, g.number)
+                if g.number == self.goal1.number:
+                    self.p2score += 1
+                else:
+                    self.p1score += 1
+                #--reset lazyball ---
+                self.lazyball1.pos = v.Vec2d(self.width//2, self.height//2)
+                self.lazyball1.move = v.Vec2d(0,0)
+                #--reset ball1
+                self.player1.pos = v.Vec2d(self.width//1.35, self.height//2)
+                self.player1.move = v.Vec2d(0,0)
+                #--reset ball3                
+                self.player2.pos = v.Vec2d(self.width//3.5, self.height//2)
+                self.player2.move = v.Vec2d(0,0)
+            #for goal in self.goalgroup:
+            #    crashgroup2=pygame.sprite.spritecollide(goal,self.lazygroup,False,pygame.sprite.collide_mask)
+            #    print(goal, crashgroup2)
+            #    for crashball in crashgroup2:
+            #        print ("goal getroffen!")
+            
             # --------- collision detection between ball and other balls
             for ball in self.ballgroup:
                 crashgroup = pygame.sprite.spritecollide(ball, self.ballgroup, False, pygame.sprite.collide_circle)
                 for otherball in crashgroup:
                     if ball.number > otherball.number:     # make sure no self-collision or calculating collision twice
                         elastic_collision(ball, otherball) # change dx and dy of both sprites
+                        #print("boing")
             # ---------- collision detection between bullet and other bullets
-            for bullet in self.bulletgroup:
-                crashgroup = pygame.sprite.spritecollide(bullet, self.bulletgroup, False, pygame.sprite.collide_circle)
-                for otherbullet in crashgroup:
-                    if bullet.number > otherbullet.number:
-                         elastic_collision(bullet, otherball) # change dx and dy of both sprites
+            #for bullet in self.bulletgroup:
+                #crashgroup = pygame.sprite.spritecollide(bullet, self.bulletgroup, False, pygame.sprite.collide_circle)
+                #for otherbullet in crashgroup:
+                    #if bullet.number > otherbullet.number:
+                         #elastic_collision(bullet, otherball) # change dx and dy of both sprites
+            #-----collision detection between ball and goal-----
+            
+                    
             # -------- remove dead -----
             #for sprite in self.ballgroup:
             #    if sprite.hitpoints < 1:
@@ -694,7 +764,7 @@ class PygView(object):
             # next frame
             pygame.display.flip()
             pygame.display.set_caption("Press ESC to quit. Cannon angle: {}".format(self.cannon1.angle))
-            #a = v.Vec2d(self.ball1.pos.x, self.ball1.pos.y)
+            #a = v.Vec2d(self.player1.pos.x, self.player1.pos.y)
             #b = v.Vec2d(self.ball2.pos.x, self.ball2.pos.y)
             #print("winkel:1:{} 2:{}  winkel:{}".format(a,b, v.Vec2d.get_angle_between(a,b)))
         pygame.quit()
